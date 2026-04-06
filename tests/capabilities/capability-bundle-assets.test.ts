@@ -92,6 +92,22 @@ const bundles = [
       'kafkamq.message-format-inference-beyond-reviewed-steps-not-promised',
     ],
   },
+  {
+    bundleId: 'akita-capability-ccl-additional-steps-module-95eda279aa4',
+    moduleId: 'ccl-additional-steps-module',
+    pin: '95eda279aa4',
+    expectedStepSourceSuffixes: ['CommonSteps.java', 'ArraySteps.java', 'CircleSteps.java'],
+    expectedUnsupportedIds: [
+      'additional.helper-and-dependency-internals-not-standalone-capabilities',
+      'additional.readme-claims-do-not-expand-runtime-truth',
+      'additional.generic-scripting-and-expression-language-not-promised',
+      'additional.generic-orchestration-framework-not-promised',
+      'additional.arbitrary-polling-retry-eventual-consistency-engine-not-promised',
+      'additional.universal-data-transformation-semantics-not-promised',
+      'additional.generic-multipart-request-construction-platform-not-promised',
+      'additional.cross-module-api-capabilities-not-re-exported',
+    ],
+  },
 ] as const;
 
 type CapabilityContract = {
