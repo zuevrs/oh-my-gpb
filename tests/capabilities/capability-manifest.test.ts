@@ -12,6 +12,7 @@ const expectedBundleIds = [
   'akita-capability-ccl-database-module-bb0d27eda3e',
   'akita-capability-ccl-files-module-05e1cf4d5e7',
   'akita-capability-akita-gpb-kafka-mq-module-ff56f175d8c',
+  'akita-capability-ccl-additional-steps-module-95eda279aa4',
 ] as const;
 
 type CapabilityManifest = {
