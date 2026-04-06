@@ -7,7 +7,7 @@
       "summary": "Generate a few reviewed scenario values, then extract one matched fragment from a stored string with a regular expression.",
       "steps": [
         "Когда сохраняем в переменные сценария значения из таблицы:",
-        "И к переменной \"documentLine\" применить регулярное выражение \"\\d{10}\\\" и сохранить результат в переменную \"innValue\""
+        "И к переменной \"documentLine\" применить регулярное выражение \"\\d{10}\" и сохранить результат в переменную \"innValue\""
       ],
       "table": [
         [
