@@ -2,19 +2,38 @@
 
 Native-first OpenCode bootstrap pack for Akita GPB workflows.
 
-`oh-my-akitagpb` installs a managed `.oma/` and `.opencode/` surface into a Java
-service repository so an OpenCode agent can scan the repo, plan high-value
-integration flows, write Akita-grounded artifacts, and validate them against
-shipped capability bundles.
+`oh-my-akitagpb` installs a managed `.oma/` and `.opencode/` surface into a target
+repository so an OpenCode agent can scan the repo as a system under test, plan
+high-value meaningful Akita flows from persisted evidence, write Akita-grounded
+artifacts, and validate them against shipped capability bundles.
+
+The product worldview is system-behavior-first:
+
+- scan discovers trigger surfaces, contract evidence, prior art, runtime shape,
+  candidate flows, and assertion opportunities from repo evidence
+- OpenAPI and AsyncAPI are first-class contract evidence sources when present,
+  but not the center of all reasoning
+- code-first contracts, DTOs, event schemas, tests, and feature files are normal
+  evidence sources, not fallback accidents
+- capability truth comes from manifest-listed bundles and their reviewed
+  references, not from README prose
 
 ## What it ships
 
 - CLI lifecycle commands: `install`, `update`, `doctor`
-- OpenCode commands: `/akita-scan`, `/akita-plan`, `/akita-write`, `/akita-validate`
-- Curated capability bundles for:
-  - `akita-gpb-core-module-trunk@c795936046e`
-  - `akita-gpb-api-module-trunk@223b2561bbc`
+- OpenCode commands: `/akita-scan`, `/akita-plan`, `/akita-write`, `/akita-validate`, `/akita-promote`
+- Curated capability bundles currently pinned in the manifest for:
+  - `akita-gpb-core-module@c795936046e`
+  - `akita-gpb-api-module@223b2561bbc`
+  - `ccl-database-module@bb0d27eda3e`
+  - `ccl-files-module@05e1cf4d5e7`
+  - `akita-gpb-kafka-mq-module@ff56f175d8c`
+  - `ccl-additional-steps-module@95eda279aa4`
 - Pack-owned templates, rules, manifests, and runtime state scaffolding
+
+The pack does not ship a fixed catalog of scenarios. `/akita-scan` and
+`/akita-plan` are meant to derive candidate flows from repo evidence plus the
+active capability bundle set.
 
 ## Requirements
 
