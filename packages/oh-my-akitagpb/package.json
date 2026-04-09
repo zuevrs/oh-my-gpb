@@ -12,13 +12,14 @@
     "bootstrap",
     "testing"
   ],
-  "homepage": "https://github.com/zuevrs/oh-my-akitagpb#readme",
+  "homepage": "https://github.com/zuevrs/oh-my-akitagpb/tree/main/packages/oh-my-akitagpb#readme",
   "bugs": {
     "url": "https://github.com/zuevrs/oh-my-akitagpb/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zuevrs/oh-my-akitagpb.git"
+    "url": "git+https://github.com/zuevrs/oh-my-akitagpb.git",
+    "directory": "packages/oh-my-akitagpb"
   },
   "type": "module",
   "bin": {
@@ -34,7 +35,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "prepare": "npm run build",
-    "release:check": "npm test && npm run smoke:pack-install",
+    "release:check": "npm run build && npm test && npm run smoke:pack-install",
     "prepublishOnly": "npm run release:check",
     "test": "vitest run",
     "test:watch": "vitest",
