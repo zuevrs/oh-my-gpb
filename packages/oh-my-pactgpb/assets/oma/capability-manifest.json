@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "activeCommandIds": [
+    "pact-scan"
+  ],
+  "activeWorkflowSkills": [
+    "pact-scan-workflow"
+  ],
+  "activeCapabilityBundles": []
+}

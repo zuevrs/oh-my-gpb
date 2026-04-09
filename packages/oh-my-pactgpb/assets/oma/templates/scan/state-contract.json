@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "contractId": "pact-provider-scan-state",
+  "sharedStateBasePath": ".oma/state/shared/scan",
+  "installedTemplateBasePath": ".oma/templates/scan",
+  "requiredMachineState": [
+    {
+      "id": "scan-state",
+      "path": ".oma/state/shared/scan/scan-state.json",
+      "format": "json",
+      "required": true,
+      "requiredTopLevelFields": [
+        "provider",
+        "relevance",
+        "artifactSource",
+        "verificationEvidence",
+        "providerStates",
+        "httpSurface",
+        "gaps"
+      ],
+      "description": "Canonical persisted scan snapshot for Pact provider verification in the target repo. It must identify the most likely provider under contract, explain why Pact provider verification is relevant or irrelevant, capture where pact artifacts are expected from, summarize verification evidence and provider-state hooks, and make blockers explicit enough for later work to reason honestly from disk state."
+    }
+  ],
+  "summaryState": {
+    "path": ".oma/state/shared/scan/scan-summary.md",
+    "templatePath": ".oma/templates/scan/scan-summary.md",
+    "format": "markdown",
+    "required": false,
+    "canonical": false,
+    "mustBeDerivedFrom": [
+      "scan-state"
+    ],
+    "description": "Human-readable Pact scan summary only. Canonical machine state stays in scan-state.json. The summary should help a human quickly see provider identity, evidence sources, artifact source expectations, provider-state readiness, and the major gaps/blockers."
+  },
+  "redaction": {
+    "policyPath": ".oma/runtime/shared/data-handling-policy.json",
+    "redactionRequired": true,
+    "markdownIsSummaryOnly": true,
+    "forbiddenSharedData": [
+      "secrets",
+      "tokens",
+      "credentials",
+      "raw auth headers",
+      "machine-local values"
+    ],
+    "allowedSharedData": [
+      "repo structure",
+      "dependency evidence",
+      "test and fixture paths",
+      "Spring HTTP surface hints",
+      "provider-state evidence",
+      "pact artifact source hints",
+      "verification blockers"
+    ]
+  }
+}
