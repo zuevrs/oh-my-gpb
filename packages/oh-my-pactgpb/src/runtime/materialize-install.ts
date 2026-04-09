@@ -30,8 +30,8 @@ export interface MaterializedInstall {
   managedSurfaces: readonly ManagedSurfaceRecord[];
 }
 
-export const COMMAND_IDS = ['pact-scan'] as const;
-export const WORKFLOW_SKILL_IDS = ['pact-scan-workflow'] as const;
+export const COMMAND_IDS = ['pact-scan', 'pact-plan'] as const;
+export const WORKFLOW_SKILL_IDS = ['pact-scan-workflow', 'pact-plan-workflow'] as const;
 export const MANAGED_INSTRUCTION_PATHS = [
   'AGENTS.md',
   `${PACK_RUNTIME_ROOT}/instructions/rules/manifest-first.md`,
@@ -55,6 +55,8 @@ const PACK_OWNED_ASSET_KEYS = [
   'oma/instructions/rules/respect-pack-ownership',
   'oma/templates/scan/state-contract',
   'oma/templates/scan/scan-summary',
+  'oma/templates/plan/state-contract',
+  'oma/templates/plan/plan-summary',
 ] as const;
 
 function assertPathIsNotSymlink(targetPath: string, code: string, message: string): void {
@@ -135,10 +137,22 @@ export function planMaterializedFiles(
       assetKey: 'commands/pact-scan',
     },
     {
+      relativePath: '.opencode/commands/pact-plan.md',
+      content: loadAssetText(catalog, 'commands/pact-plan'),
+      generatedBy: 'asset',
+      assetKey: 'commands/pact-plan',
+    },
+    {
       relativePath: '.opencode/skills/pact-scan-workflow/SKILL.md',
       content: loadAssetText(catalog, 'opencode/skills/pact-scan-workflow'),
       generatedBy: 'asset',
       assetKey: 'opencode/skills/pact-scan-workflow',
+    },
+    {
+      relativePath: '.opencode/skills/pact-plan-workflow/SKILL.md',
+      content: loadAssetText(catalog, 'opencode/skills/pact-plan-workflow'),
+      generatedBy: 'asset',
+      assetKey: 'opencode/skills/pact-plan-workflow',
     },
   ];
 }
@@ -205,8 +219,8 @@ export function materializeFreshInstall(
       packageName: packageSurface.packageName,
       packageVersion: packageSurface.packageVersion,
       instructions: MANAGED_INSTRUCTION_PATHS,
-      commands: ['.opencode/commands/pact-scan.md'],
-      skills: ['.opencode/skills/pact-scan-workflow/SKILL.md'],
+      commands: ['.opencode/commands/pact-scan.md', '.opencode/commands/pact-plan.md'],
+      skills: ['.opencode/skills/pact-scan-workflow/SKILL.md', '.opencode/skills/pact-plan-workflow/SKILL.md'],
     }),
     applyManagedGitignoreBlock(path.join(projectRoot, '.gitignore')),
   ].map((result) => toManagedSurfaceRecord(result));

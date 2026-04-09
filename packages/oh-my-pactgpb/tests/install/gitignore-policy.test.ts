@@ -107,6 +107,7 @@ describe('gitignore policy materialization', () => {
     expect(gitignoreContent).toContain('!.oma/packs/oh-my-pactgpb/state/shared/**');
 
     ensureFile(fixture.rootDir, '.oma/packs/oh-my-pactgpb/state/shared/scan/scan-state.json', '{"scan":true}\n');
+    ensureFile(fixture.rootDir, '.oma/packs/oh-my-pactgpb/state/shared/plan/plan-state.json', '{"plan":true}\n');
     ensureFile(fixture.rootDir, '.oma/packs/oh-my-pactgpb/state/local/doctor/debug.json', '{"doctor":true}\n');
     ensureFile(fixture.rootDir, '.oma/packs/oh-my-pactgpb/generated/features/example.feature', 'Feature: staged\n');
 
@@ -114,11 +115,14 @@ describe('gitignore policy materialization', () => {
       'AGENTS.md',
       'opencode.json',
       '.opencode/commands/pact-scan.md',
+      '.opencode/commands/pact-plan.md',
       '.opencode/skills/pact-scan-workflow/SKILL.md',
+      '.opencode/skills/pact-plan-workflow/SKILL.md',
       '.oma/packs/oh-my-pactgpb/capability-manifest.json',
       '.oma/packs/oh-my-pactgpb/runtime/shared/version.json',
       '.oma/packs/oh-my-pactgpb/runtime/shared/data-handling-policy.json',
       '.oma/packs/oh-my-pactgpb/state/shared/scan/scan-state.json',
+      '.oma/packs/oh-my-pactgpb/state/shared/plan/plan-state.json',
     ]) {
       expect(isIgnored(fixture.rootDir, relativePath), relativePath).toBe(false);
     }

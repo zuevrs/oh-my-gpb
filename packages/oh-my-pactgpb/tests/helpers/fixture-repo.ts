@@ -4,7 +4,15 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-export type FixtureTemplate = 'empty' | 'package-only' | 'java-service' | 'spring-pact-provider-local' | 'spring-pact-provider-unclear';
+export type FixtureTemplate =
+  | 'empty'
+  | 'package-only'
+  | 'java-service'
+  | 'spring-pact-provider-local'
+  | 'spring-pact-provider-unclear'
+  | 'spring-pact-provider-broker'
+  | 'spring-pact-provider-stale'
+  | 'spring-pact-provider-ambiguous';
 
 export interface CommandExecution {
   command: string;
@@ -48,6 +56,9 @@ const fixtureTemplateRoots: Partial<Record<FixtureTemplate, string>> = {
   'java-service': path.join(repoRoot, 'tests', 'fixtures', 'empty-java-service'),
   'spring-pact-provider-local': path.join(repoRoot, 'tests', 'fixtures', 'spring-pact-provider-local'),
   'spring-pact-provider-unclear': path.join(repoRoot, 'tests', 'fixtures', 'spring-pact-provider-unclear'),
+  'spring-pact-provider-broker': path.join(repoRoot, 'tests', 'fixtures', 'spring-pact-provider-broker'),
+  'spring-pact-provider-stale': path.join(repoRoot, 'tests', 'fixtures', 'spring-pact-provider-stale'),
+  'spring-pact-provider-ambiguous': path.join(repoRoot, 'tests', 'fixtures', 'spring-pact-provider-ambiguous'),
 };
 let packedTarballPath: string | undefined;
 

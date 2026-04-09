@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: shipping-provider
+pactbroker:
+  url: https://broker.example.invalid
