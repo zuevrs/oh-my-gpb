@@ -20,15 +20,19 @@ Slice 1 is intentionally narrow.
 - OpenCode command: `/pact-scan`
 - OpenCode command: `/pact-plan`
 - OpenCode command: `/pact-write`
+- OpenCode command: `/pact-validate`
 - OpenCode workflow skill: `.opencode/skills/pact-scan-workflow/SKILL.md`
 - OpenCode workflow skill: `.opencode/skills/pact-plan-workflow/SKILL.md`
 - OpenCode workflow skill: `.opencode/skills/pact-write-workflow/SKILL.md`
+- OpenCode workflow skill: `.opencode/skills/pact-validate-workflow/SKILL.md`
 - Pact scan state contract and summary template under
   `.oma/packs/oh-my-pactgpb/templates/scan/`
 - Pact plan state contract and summary template under
   `.oma/packs/oh-my-pactgpb/templates/plan/`
 - Pact write state contract and summary template under
   `.oma/packs/oh-my-pactgpb/templates/write/`
+- Pact validate state contract and summary template under
+  `.oma/packs/oh-my-pactgpb/templates/validate/`
 - Strict ownership/update safety for pack-owned runtime plus additive shared
   surfaces
 - Package-local proof fixtures that verify grounded detection of:
@@ -42,7 +46,6 @@ Slice 1 is intentionally narrow.
 
 ### What is intentionally not implemented yet
 
-- `/pact-validate`
 - consumer pact generation
 - broker publish / can-i-deploy automation
 - message pacts
@@ -88,6 +91,13 @@ Then materialize only the provider-verification scaffold the plan safely allows 
 
 ```text
 /pact-write
+```
+
+Then verify whether the recorded scan/plan/write outcome is actually ready, partial,
+blocked, irrelevant, or inconsistent with:
+
+```text
+/pact-validate
 ```
 
 ## Co-install support
@@ -182,6 +192,8 @@ This includes durable scan, plan, and write state such as:
 - `.oma/packs/oh-my-pactgpb/state/shared/plan/plan-summary.md`
 - `.oma/packs/oh-my-pactgpb/state/shared/write/write-state.json`
 - `.oma/packs/oh-my-pactgpb/state/shared/write/write-summary.md`
+- `.oma/packs/oh-my-pactgpb/state/shared/validate/validate-state.json`
+- `.oma/packs/oh-my-pactgpb/state/shared/validate/validate-summary.md`
 
 ### Local-only Pact runtime surface
 
