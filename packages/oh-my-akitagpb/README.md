@@ -162,13 +162,12 @@ This repository includes:
 - CI workflow: `.github/workflows/ci.yml`
 - npm publish workflow: `.github/workflows/publish.yml`
 
-Current repository metadata still points at `zuevrs/oh-my-akitagpb` until the
-external GitHub repo rename happens. The package metadata already marks
-`packages/oh-my-akitagpb` as the package directory inside the repository.
+The package metadata marks `packages/oh-my-akitagpb` as the package directory
+inside the `zuevrs/oh-my-gpb` repository.
 
-Trusted publishing setup on npmjs.com must eventually point to:
+Trusted publishing setup on npmjs.com should point to:
 
-- Repository: `zuevrs/oh-my-gpb` after the repo rename
+- Repository: `zuevrs/oh-my-gpb`
 - Workflow filename: `publish.yml`
 
 Release flow:

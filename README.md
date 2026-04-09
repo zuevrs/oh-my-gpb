@@ -66,10 +66,8 @@ directory.
 
 ## Manual follow-up outside this repository
 
-These changes prepare the repo for the later umbrella rename, but they do not
-perform external state changes:
+The repository move is now reflected in the local clone and package metadata.
+Remaining external follow-up is limited to publishing configuration:
 
-- rename the GitHub repository from `oh-my-akitagpb` to `oh-my-gpb`
-- update npm trusted publisher binding to the renamed repository while keeping
-  the publish workflow filename stable
-- align homepage/repository URLs to the final GitHub slug after the repo rename
+- update npm trusted publisher binding to `zuevrs/oh-my-gpb` while keeping the
+  publish workflow filename stable
