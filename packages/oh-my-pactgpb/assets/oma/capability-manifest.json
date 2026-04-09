@@ -3,12 +3,14 @@
   "activeCommandIds": [
     "pact-scan",
     "pact-plan",
-    "pact-write"
+    "pact-write",
+    "pact-validate"
   ],
   "activeWorkflowSkills": [
     "pact-scan-workflow",
     "pact-plan-workflow",
-    "pact-write-workflow"
+    "pact-write-workflow",
+    "pact-validate-workflow"
   ],
   "activeCapabilityBundles": []
 }

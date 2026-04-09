@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "contractId": "pact-provider-validate-state",
+  "sharedStateBasePath": ".oma/packs/oh-my-pactgpb/state/shared/validate",
+  "installedTemplateBasePath": ".oma/packs/oh-my-pactgpb/templates/validate",
+  "writePrerequisites": {
+    "contractPath": ".oma/packs/oh-my-pactgpb/templates/write/state-contract.json",
+    "sharedStateBasePath": ".oma/packs/oh-my-pactgpb/state/shared/write",
+    "requiredStatePaths": [
+      ".oma/packs/oh-my-pactgpb/state/shared/write/write-state.json"
+    ],
+    "validatorMustReadFromDisk": true,
+    "description": "pact-validate must consume the persisted write snapshot from disk before deciding whether provider verification is honestly ready, partial, blocked, irrelevant, or inconsistent."
+  },
+  "planSupportInputs": {
+    "contractPath": ".oma/packs/oh-my-pactgpb/templates/plan/state-contract.json",
+    "sharedStateBasePath": ".oma/packs/oh-my-pactgpb/state/shared/plan",
+    "requiredStatePaths": [
+      ".oma/packs/oh-my-pactgpb/state/shared/plan/plan-state.json"
+    ],
+    "validatorMustReadFromDisk": true,
+    "description": "pact-validate must read the persisted plan snapshot from disk as the canonical prior verdict and scaffold budget for validation."
+  },
+  "scanSupportInputs": {
+    "contractPath": ".oma/packs/oh-my-pactgpb/templates/scan/state-contract.json",
+    "sharedStateBasePath": ".oma/packs/oh-my-pactgpb/state/shared/scan",
+    "requiredStatePaths": [
+      ".oma/packs/oh-my-pactgpb/state/shared/scan/scan-state.json"
+    ],
+    "validatorMustReadFromDisk": true,
+    "description": "pact-validate must read the persisted scan snapshot from disk as supporting evidence for provider identity, artifact source expectations, and provider-state readiness."
+  },
+  "requiredMachineState": [
+    {
+      "id": "validate-state",
+      "path": ".oma/packs/oh-my-pactgpb/state/shared/validate/validate-state.json",
+      "format": "json",
+      "required": true,
+      "requiredTopLevelFields": [
+        "inputVerdicts",
+        "validationOutcome",
+        "stateConsistency",
+        "repoRealityChecks",
+        "compileCheck",
+        "runnableVerificationCheck",
+        "remainingBlockers",
+        "manualFollowUps",
+        "evidence",
+        "notes"
+      ],
+      "description": "Canonical persisted validation result for Pact provider verification. It must capture the validated input verdict chain, repo reality checks, compile/structural proof, runnable verification proof, remaining blockers, and honest notes without pretending readiness unsupported by persisted state and repo evidence."
+    }
+  ],
+  "validationOutcomeTaxonomy": {
+    "path": ".oma/packs/oh-my-pactgpb/state/shared/validate/validate-state.json",
+    "section": "validationOutcome",
+    "allowed": [
+      "ready",
+      "partial",
+      "blocked",
+      "irrelevant",
+      "inconsistent"
+    ],
+    "description": "pact-validate must distinguish truly ready repos from partial, blocked, irrelevant, and inconsistent/drifted states."
+  },
+  "stopConditions": [
+    {
+      "id": "missing-persisted-input",
+      "classification": "blocked",
+      "reportIn": "validate-state",
+      "description": "One or more required persisted scan/plan/write inputs are missing, so validation cannot proceed honestly."
+    },
+    {
+      "id": "verdict-chain-mismatch",
+      "classification": "inconsistent",
+      "reportIn": "validate-state",
+      "description": "Persisted scan/plan/write verdicts conflict with one another, so the validation chain is inconsistent."
+    },
+    {
+      "id": "write-drift-detected",
+      "classification": "inconsistent",
+      "reportIn": "validate-state",
+      "description": "Files claimed as written or modified no longer match the recorded Pact scaffold outcome."
+    },
+    {
+      "id": "runnable-verification-unproven",
+      "classification": "partial",
+      "reportIn": "validate-state",
+      "description": "Repo reality may be structurally sound, but runnable Pact verification remains blocked or unproven by the available evidence."
+    },
+    {
+      "id": "irrelevant-verdict-chain",
+      "classification": "irrelevant",
+      "reportIn": "validate-state",
+      "description": "Persisted scan/plan/write state honestly shows Pact provider verification is irrelevant for this repo within the current MVP boundary."
+    }
+  ],
+  "summaryState": {
+    "path": ".oma/packs/oh-my-pactgpb/state/shared/validate/validate-summary.md",
+    "templatePath": ".oma/packs/oh-my-pactgpb/templates/validate/validate-summary.md",
+    "format": "markdown",
+    "required": false,
+    "canonical": false,
+    "mustBeDerivedFrom": [
+      "validate-state"
+    ],
+    "description": "Human-readable Pact validate summary only. Canonical machine state stays in validate-state.json."
+  },
+  "redaction": {
+    "policyPath": ".oma/packs/oh-my-pactgpb/runtime/shared/data-handling-policy.json",
+    "redactionRequired": true,
+    "markdownIsSummaryOnly": true,
+    "forbiddenSharedData": [
+      "secrets",
+      "tokens",
+      "credentials",
+      "raw auth headers",
+      "machine-local values"
+    ],
+    "allowedSharedData": [
+      "input verdicts",
+      "provider identity",
+      "repo-relative file paths",
+      "artifact source reasoning",
+      "compile/structural proof",
+      "runnable verification status",
+      "validation blockers",
+      "drift evidence"
+    ]
+  }
+}

@@ -30,8 +30,8 @@ export interface MaterializedInstall {
   managedSurfaces: readonly ManagedSurfaceRecord[];
 }
 
-export const COMMAND_IDS = ['pact-scan', 'pact-plan', 'pact-write'] as const;
-export const WORKFLOW_SKILL_IDS = ['pact-scan-workflow', 'pact-plan-workflow', 'pact-write-workflow'] as const;
+export const COMMAND_IDS = ['pact-scan', 'pact-plan', 'pact-write', 'pact-validate'] as const;
+export const WORKFLOW_SKILL_IDS = ['pact-scan-workflow', 'pact-plan-workflow', 'pact-write-workflow', 'pact-validate-workflow'] as const;
 export const MANAGED_INSTRUCTION_PATHS = [
   'AGENTS.md',
   `${PACK_RUNTIME_ROOT}/instructions/rules/manifest-first.md`,
@@ -59,6 +59,8 @@ const PACK_OWNED_ASSET_KEYS = [
   'oma/templates/plan/plan-summary',
   'oma/templates/write/state-contract',
   'oma/templates/write/write-summary',
+  'oma/templates/validate/state-contract',
+  'oma/templates/validate/validate-summary',
 ] as const;
 
 function assertPathIsNotSymlink(targetPath: string, code: string, message: string): void {
@@ -151,6 +153,12 @@ export function planMaterializedFiles(
       assetKey: 'commands/pact-write',
     },
     {
+      relativePath: '.opencode/commands/pact-validate.md',
+      content: loadAssetText(catalog, 'commands/pact-validate'),
+      generatedBy: 'asset',
+      assetKey: 'commands/pact-validate',
+    },
+    {
       relativePath: '.opencode/skills/pact-scan-workflow/SKILL.md',
       content: loadAssetText(catalog, 'opencode/skills/pact-scan-workflow'),
       generatedBy: 'asset',
@@ -167,6 +175,12 @@ export function planMaterializedFiles(
       content: loadAssetText(catalog, 'opencode/skills/pact-write-workflow'),
       generatedBy: 'asset',
       assetKey: 'opencode/skills/pact-write-workflow',
+    },
+    {
+      relativePath: '.opencode/skills/pact-validate-workflow/SKILL.md',
+      content: loadAssetText(catalog, 'opencode/skills/pact-validate-workflow'),
+      generatedBy: 'asset',
+      assetKey: 'opencode/skills/pact-validate-workflow',
     },
   ];
 }
@@ -233,11 +247,12 @@ export function materializeFreshInstall(
       packageName: packageSurface.packageName,
       packageVersion: packageSurface.packageVersion,
       instructions: MANAGED_INSTRUCTION_PATHS,
-      commands: ['.opencode/commands/pact-scan.md', '.opencode/commands/pact-plan.md', '.opencode/commands/pact-write.md'],
+      commands: ['.opencode/commands/pact-scan.md', '.opencode/commands/pact-plan.md', '.opencode/commands/pact-write.md', '.opencode/commands/pact-validate.md'],
       skills: [
         '.opencode/skills/pact-scan-workflow/SKILL.md',
         '.opencode/skills/pact-plan-workflow/SKILL.md',
         '.opencode/skills/pact-write-workflow/SKILL.md',
+        '.opencode/skills/pact-validate-workflow/SKILL.md',
       ],
     }),
     applyManagedGitignoreBlock(path.join(projectRoot, '.gitignore')),
