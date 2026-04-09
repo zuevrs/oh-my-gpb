@@ -39,14 +39,18 @@ afterEach(() => {
   }
 });
 
-describe('scan template materialization', () => {
+describe('scan and plan template materialization', () => {
   it('keeps the shipped scan assets registered in the package asset catalog', () => {
     const catalog = createAssetCatalog(repoRoot);
     const expectedAssetEntries = {
       'commands/pact-scan': path.join(repoRoot, 'assets', 'commands', 'pact-scan.md'),
+      'commands/pact-plan': path.join(repoRoot, 'assets', 'commands', 'pact-plan.md'),
       'opencode/skills/pact-scan-workflow': path.join(repoRoot, 'assets', 'opencode', 'skills', 'pact-scan-workflow', 'SKILL.md'),
+      'opencode/skills/pact-plan-workflow': path.join(repoRoot, 'assets', 'opencode', 'skills', 'pact-plan-workflow', 'SKILL.md'),
       'oma/templates/scan/state-contract': path.join(repoRoot, 'assets', 'oma', 'templates', 'scan', 'state-contract.json'),
       'oma/templates/scan/scan-summary': path.join(repoRoot, 'assets', 'oma', 'templates', 'scan', 'scan-summary.md'),
+      'oma/templates/plan/state-contract': path.join(repoRoot, 'assets', 'oma', 'templates', 'plan', 'state-contract.json'),
+      'oma/templates/plan/plan-summary': path.join(repoRoot, 'assets', 'oma', 'templates', 'plan', 'plan-summary.md'),
     } as const;
 
     for (const [assetKey, expectedPath] of Object.entries(expectedAssetEntries)) {
@@ -56,7 +60,7 @@ describe('scan template materialization', () => {
     }
   });
 
-  it('materializes the scan contract templates on fresh install without claiming unrelated template files', () => {
+  it('materializes the scan and plan contract templates on fresh install without claiming unrelated template files', () => {
     const fixture = trackFixture(createInstalledFixture({ template: 'java-service' }));
     const userTemplatePath = path.join(fixture.rootDir, '.oma', 'packs', 'oh-my-pactgpb', 'templates', 'user-notes', 'README.md');
     mkdirSync(path.dirname(userTemplatePath), { recursive: true });
@@ -77,6 +81,8 @@ describe('scan template materialization', () => {
     for (const relativePath of [
       '.oma/packs/oh-my-pactgpb/templates/scan/state-contract.json',
       '.oma/packs/oh-my-pactgpb/templates/scan/scan-summary.md',
+      '.oma/packs/oh-my-pactgpb/templates/plan/state-contract.json',
+      '.oma/packs/oh-my-pactgpb/templates/plan/plan-summary.md',
     ]) {
       expect(existsSync(path.join(fixture.rootDir, relativePath)), relativePath).toBe(true);
       expect(installState.ownedFiles.some((file) => file.relativePath === relativePath), relativePath).toBe(true);
@@ -84,12 +90,19 @@ describe('scan template materialization', () => {
 
     const installedScanContract = readFileSync(path.join(fixture.rootDir, '.oma', 'packs', 'oh-my-pactgpb', 'templates', 'scan', 'state-contract.json'), 'utf8');
     const installedScanSummary = readFileSync(path.join(fixture.rootDir, '.oma', 'packs', 'oh-my-pactgpb', 'templates', 'scan', 'scan-summary.md'), 'utf8');
+    const installedPlanContract = readFileSync(path.join(fixture.rootDir, '.oma', 'packs', 'oh-my-pactgpb', 'templates', 'plan', 'state-contract.json'), 'utf8');
+    const installedPlanSummary = readFileSync(path.join(fixture.rootDir, '.oma', 'packs', 'oh-my-pactgpb', 'templates', 'plan', 'plan-summary.md'), 'utf8');
 
     expect(installedScanContract).toContain('provider');
     expect(installedScanContract).toContain('artifactSource');
     expect(installedScanSummary).toContain('## Summary');
     expect(installedScanSummary).toContain('### Provider under contract');
     expect(installedScanSummary).toContain('### Main blockers');
+    expect(installedPlanContract).toContain('providerSelection');
+    expect(installedPlanContract).toContain('verificationReadiness');
+    expect(installedPlanSummary).toContain('### Provider selection');
+    expect(installedPlanSummary).toContain('### Verification readiness');
+    expect(installedPlanSummary).toContain('### Blockers');
 
     expect(readFileSync(userTemplatePath, 'utf8')).toBe('user-owned template notes\n');
     expect(installState.ownedFiles.some((file) => file.relativePath === '.oma/packs/oh-my-pactgpb/templates/user-notes/README.md')).toBe(false);

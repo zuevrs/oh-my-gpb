@@ -124,9 +124,13 @@ function main() {
   const opencodeConfigPath = path.join(fixtureRoot, 'opencode.json');
   const requiredInstalledPaths = [
     '.opencode/commands/pact-scan.md',
+    '.opencode/commands/pact-plan.md',
     '.opencode/skills/pact-scan-workflow/SKILL.md',
+    '.opencode/skills/pact-plan-workflow/SKILL.md',
     '.oma/packs/oh-my-pactgpb/templates/scan/state-contract.json',
     '.oma/packs/oh-my-pactgpb/templates/scan/scan-summary.md',
+    '.oma/packs/oh-my-pactgpb/templates/plan/state-contract.json',
+    '.oma/packs/oh-my-pactgpb/templates/plan/plan-summary.md',
   ];
 
   assertFileExists(path.join(fixtureRoot, 'pom.xml'));
@@ -160,12 +164,22 @@ function main() {
     }
   }
 
-  if (!Array.isArray(capabilityManifest.activeCommandIds) || capabilityManifest.activeCommandIds.length !== 1 || capabilityManifest.activeCommandIds[0] !== 'pact-scan') {
-    throw new Error('capability-manifest.json did not advertise only pact-scan.');
+  if (
+    !Array.isArray(capabilityManifest.activeCommandIds) ||
+    capabilityManifest.activeCommandIds.length !== 2 ||
+    !capabilityManifest.activeCommandIds.includes('pact-scan') ||
+    !capabilityManifest.activeCommandIds.includes('pact-plan')
+  ) {
+    throw new Error('capability-manifest.json did not advertise the installed Pact commands.');
   }
 
-  if (!Array.isArray(capabilityManifest.activeWorkflowSkills) || capabilityManifest.activeWorkflowSkills.length !== 1 || capabilityManifest.activeWorkflowSkills[0] !== 'pact-scan-workflow') {
-    throw new Error('capability-manifest.json did not advertise only pact-scan-workflow.');
+  if (
+    !Array.isArray(capabilityManifest.activeWorkflowSkills) ||
+    capabilityManifest.activeWorkflowSkills.length !== 2 ||
+    !capabilityManifest.activeWorkflowSkills.includes('pact-scan-workflow') ||
+    !capabilityManifest.activeWorkflowSkills.includes('pact-plan-workflow')
+  ) {
+    throw new Error('capability-manifest.json did not advertise the installed Pact workflow skills.');
   }
 
   if (!Array.isArray(capabilityManifest.activeCapabilityBundles) || capabilityManifest.activeCapabilityBundles.length !== 0) {
@@ -186,10 +200,17 @@ function main() {
 
   assertFileContains(path.join(fixtureRoot, '.opencode', 'commands', 'pact-scan.md'), '.oma/packs/oh-my-pactgpb/templates/scan/state-contract.json');
   assertFileContains(path.join(fixtureRoot, '.opencode', 'commands', 'pact-scan.md'), 'Pact provider verification');
+  assertFileContains(path.join(fixtureRoot, '.opencode', 'commands', 'pact-plan.md'), '.oma/packs/oh-my-pactgpb/templates/plan/state-contract.json');
+  assertFileContains(path.join(fixtureRoot, '.opencode', 'commands', 'pact-plan.md'), '.oma/packs/oh-my-pactgpb/state/shared/scan/scan-state.json');
   assertFileContains(path.join(fixtureRoot, '.opencode', 'skills', 'pact-scan-workflow', 'SKILL.md'), 'artifact source');
   assertFileContains(path.join(fixtureRoot, '.opencode', 'skills', 'pact-scan-workflow', 'SKILL.md'), 'provider verification');
+  assertFileContains(path.join(fixtureRoot, '.opencode', 'skills', 'pact-plan-workflow', 'SKILL.md'), 'persisted scan state');
+  assertFileContains(path.join(fixtureRoot, '.opencode', 'skills', 'pact-plan-workflow', 'SKILL.md'), 'provider-verification plan');
   assertFileContains(path.join(fixtureRoot, '.oma', 'packs', 'oh-my-pactgpb', 'templates', 'scan', 'state-contract.json'), 'artifactSource');
   assertFileContains(path.join(fixtureRoot, '.oma', 'packs', 'oh-my-pactgpb', 'templates', 'scan', 'scan-summary.md'), '### Provider under contract');
+  assertFileContains(path.join(fixtureRoot, '.oma', 'packs', 'oh-my-pactgpb', 'templates', 'plan', 'state-contract.json'), 'providerSelection');
+  assertFileContains(path.join(fixtureRoot, '.oma', 'packs', 'oh-my-pactgpb', 'templates', 'plan', 'state-contract.json'), 'verificationReadiness');
+  assertFileContains(path.join(fixtureRoot, '.oma', 'packs', 'oh-my-pactgpb', 'templates', 'plan', 'plan-summary.md'), '### Provider selection');
 
   const summary = {
     status: 'ok',

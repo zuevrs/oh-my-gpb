@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "contractId": "pact-provider-plan-state",
+  "sharedStateBasePath": ".oma/packs/oh-my-pactgpb/state/shared/plan",
+  "installedTemplateBasePath": ".oma/packs/oh-my-pactgpb/templates/plan",
+  "scanPrerequisites": {
+    "contractPath": ".oma/packs/oh-my-pactgpb/templates/scan/state-contract.json",
+    "sharedStateBasePath": ".oma/packs/oh-my-pactgpb/state/shared/scan",
+    "requiredStatePaths": [
+      ".oma/packs/oh-my-pactgpb/state/shared/scan/scan-state.json"
+    ],
+    "plannerMustReadFromDisk": true,
+    "description": "pact-plan must consume the persisted scan snapshot from disk and stop when it is missing instead of reconstructing repo facts from chat memory."
+  },
+  "requiredMachineState": [
+    {
+      "id": "plan-state",
+      "path": ".oma/packs/oh-my-pactgpb/state/shared/plan/plan-state.json",
+      "format": "json",
+      "required": true,
+      "requiredTopLevelFields": [
+        "providerSelection",
+        "artifactSourceStrategy",
+        "verificationReadiness",
+        "providerStateWork",
+        "plannedTasks",
+        "verificationApproach",
+        "blockedBy"
+      ],
+      "description": "Canonical persisted planning state for Pact provider verification. It must capture provider selection, artifact-source strategy, verification readiness, provider-state work, safe ordered next tasks, verification approach, and explicit blockers without inventing runnable verification unsupported by scan evidence."
+    }
+  ],
+  "verdictTaxonomy": {
+    "path": ".oma/packs/oh-my-pactgpb/state/shared/plan/plan-state.json",
+    "section": "verificationReadiness.verdict",
+    "allowed": [
+      "ready-to-scaffold",
+      "needs-provider-state-work",
+      "needs-artifact-source-clarification",
+      "blocked",
+      "irrelevant"
+    ],
+    "description": "pact-plan must classify planning readiness honestly using this narrow verdict set."
+  },
+  "stopConditions": [
+    {
+      "id": "missing-scan-state",
+      "classification": "blocked",
+      "reportIn": "plan-state",
+      "description": "Required persisted scan state is missing, so planning cannot proceed honestly."
+    },
+    {
+      "id": "ambiguous-provider-selection",
+      "classification": "blocked",
+      "reportIn": "plan-state",
+      "description": "The provider under contract cannot be selected honestly from persisted scan state."
+    },
+    {
+      "id": "weak-artifact-source-evidence",
+      "classification": "needs-artifact-source-clarification",
+      "reportIn": "plan-state",
+      "description": "Persisted scan state does not provide enough evidence to choose a runnable pact artifact source."
+    },
+    {
+      "id": "pact-irrelevant",
+      "classification": "irrelevant",
+      "reportIn": "plan-state",
+      "description": "Persisted scan state shows Pact provider verification is not relevant for this repo within the current MVP boundary."
+    }
+  ],
+  "summaryState": {
+    "path": ".oma/packs/oh-my-pactgpb/state/shared/plan/plan-summary.md",
+    "templatePath": ".oma/packs/oh-my-pactgpb/templates/plan/plan-summary.md",
+    "format": "markdown",
+    "required": false,
+    "canonical": false,
+    "mustBeDerivedFrom": [
+      "plan-state"
+    ],
+    "description": "Human-readable Pact plan summary only. Canonical machine state stays in plan-state.json."
+  },
+  "redaction": {
+    "policyPath": ".oma/packs/oh-my-pactgpb/runtime/shared/data-handling-policy.json",
+    "redactionRequired": true,
+    "markdownIsSummaryOnly": true,
+    "forbiddenSharedData": [
+      "secrets",
+      "tokens",
+      "credentials",
+      "raw auth headers",
+      "machine-local values"
+    ],
+    "allowedSharedData": [
+      "provider identity evidence",
+      "artifact source reasoning",
+      "verification setup evidence",
+      "provider-state gaps",
+      "planned tasks",
+      "verification blockers"
+    ]
+  }
+}
