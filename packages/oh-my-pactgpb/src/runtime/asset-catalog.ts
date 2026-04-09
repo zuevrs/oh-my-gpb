@@ -68,9 +68,11 @@ const ASSET_ENTRIES = Object.freeze({
   'commands/pact-scan': 'commands/pact-scan.md',
   'commands/pact-plan': 'commands/pact-plan.md',
   'commands/pact-write': 'commands/pact-write.md',
+  'commands/pact-validate': 'commands/pact-validate.md',
   'opencode/skills/pact-scan-workflow': 'opencode/skills/pact-scan-workflow/SKILL.md',
   'opencode/skills/pact-plan-workflow': 'opencode/skills/pact-plan-workflow/SKILL.md',
   'opencode/skills/pact-write-workflow': 'opencode/skills/pact-write-workflow/SKILL.md',
+  'opencode/skills/pact-validate-workflow': 'opencode/skills/pact-validate-workflow/SKILL.md',
   'oma/capability-manifest': 'oma/capability-manifest.json',
   'oma/runtime/shared/data-handling-policy': 'oma/runtime/shared/data-handling-policy.json',
   'oma/instructions/rules/manifest-first': 'oma/instructions/rules/manifest-first.md',
@@ -86,6 +88,8 @@ const ASSET_ENTRIES = Object.freeze({
   'oma/templates/plan/plan-summary': 'oma/templates/plan/plan-summary.md',
   'oma/templates/write/state-contract': 'oma/templates/write/state-contract.json',
   'oma/templates/write/write-summary': 'oma/templates/write/write-summary.md',
+  'oma/templates/validate/state-contract': 'oma/templates/validate/state-contract.json',
+  'oma/templates/validate/validate-summary': 'oma/templates/validate/validate-summary.md',
 } satisfies Record<string, string>);
 
 const CAPABILITY_BUNDLE_PREFIX = 'pact-capability-';
