@@ -103,4 +103,54 @@ describe('plan proof', () => {
     expect(plan.plannedTasks).toEqual([]);
     expect(plan.blockedBy).toEqual([]);
   });
+
+  it('keeps broker-only artifact hints in clarification mode instead of claiming runnable verification', () => {
+    const fixture = trackFixture(createInstalledFixture({ template: 'spring-pact-provider-broker' }));
+    parseJsonOutput<CliResult>(invokeInstalledCli(fixture.rootDir, ['install']));
+    writeProofScanArtifacts(fixture.rootDir);
+
+    const artifacts = writeProofPlanArtifacts(fixture.rootDir);
+    const persistedState = readJsonFile<PactProviderPlanState>(artifacts.statePath);
+
+    expect(persistedState.providerSelection.name).toBe('shipping-provider');
+    expect(persistedState.artifactSourceStrategy.verdict).toBe('broker');
+    expect(persistedState.verificationReadiness.verdict).toBe('needs-artifact-source-clarification');
+    expect(persistedState.plannedTasks.map((task) => task.title)).toContain('Clarify broker-backed pact retrieval');
+    expect(persistedState.blockedBy.join(' ')).toContain('broker access');
+  });
+
+  it('extends stale existing verification instead of recreating it from scratch', () => {
+    const fixture = trackFixture(createInstalledFixture({ template: 'spring-pact-provider-stale' }));
+    parseJsonOutput<CliResult>(invokeInstalledCli(fixture.rootDir, ['install']));
+    writeProofScanArtifacts(fixture.rootDir);
+
+    const artifacts = writeProofPlanArtifacts(fixture.rootDir);
+    const persistedState = readJsonFile<PactProviderPlanState>(artifacts.statePath);
+
+    expect(persistedState.providerSelection.name).toBe('orders-provider');
+    expect(persistedState.artifactSourceStrategy.verdict).toBe('local');
+    expect(persistedState.verificationReadiness.verdict).toBe('needs-provider-state-work');
+    expect(persistedState.verificationReadiness.existingSetup).toBe('extend-existing-provider-verification');
+    expect(persistedState.providerStateWork.gaps.join(' ')).toContain('No provider state hooks were detected');
+    expect(persistedState.plannedTasks.map((task) => task.title)).toContain('Extend the existing provider verification setup');
+    expect(persistedState.plannedTasks.map((task) => task.title)).not.toContain('Scaffold a provider verification test');
+  });
+
+  it('persists provider ambiguity as a blocker instead of silently guessing', () => {
+    const fixture = trackFixture(createInstalledFixture({ template: 'spring-pact-provider-ambiguous' }));
+    parseJsonOutput<CliResult>(invokeInstalledCli(fixture.rootDir, ['install']));
+    writeProofScanArtifacts(fixture.rootDir);
+
+    const artifacts = writeProofPlanArtifacts(fixture.rootDir);
+    const persistedState = readJsonFile<PactProviderPlanState>(artifacts.statePath);
+    const summary = readFileSync(artifacts.summaryPath, 'utf8');
+
+    expect(persistedState.providerSelection.name).toBeNull();
+    expect(persistedState.verificationReadiness.verdict).toBe('blocked');
+    expect(persistedState.providerSelection.ambiguities.join(' ')).toContain('ambiguous');
+    expect(persistedState.blockedBy.join(' ')).toContain('ambiguous');
+    expect(persistedState.plannedTasks).toHaveLength(1);
+    expect(persistedState.plannedTasks[0]?.title).toBe('Resolve provider binding ambiguity');
+    expect(summary).toContain('blocked or unclear');
+  });
 });
