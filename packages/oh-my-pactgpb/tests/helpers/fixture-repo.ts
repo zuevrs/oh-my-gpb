@@ -4,7 +4,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-export type FixtureTemplate = 'empty' | 'package-only' | 'java-service';
+export type FixtureTemplate = 'empty' | 'package-only' | 'java-service' | 'spring-pact-provider-local' | 'spring-pact-provider-unclear';
 
 export interface CommandExecution {
   command: string;
@@ -46,6 +46,8 @@ const packLockDir = path.join(packLockRoot, 'lock');
 const npmCacheRoot = path.join(tmpdir(), 'oh-my-pactgpb-npm-cache');
 const fixtureTemplateRoots: Partial<Record<FixtureTemplate, string>> = {
   'java-service': path.join(repoRoot, 'tests', 'fixtures', 'empty-java-service'),
+  'spring-pact-provider-local': path.join(repoRoot, 'tests', 'fixtures', 'spring-pact-provider-local'),
+  'spring-pact-provider-unclear': path.join(repoRoot, 'tests', 'fixtures', 'spring-pact-provider-unclear'),
 };
 let packedTarballPath: string | undefined;
 
