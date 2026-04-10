@@ -5,14 +5,16 @@ import type { PactProviderPlanState, PactPlanVerdict } from './plan-proof.js';
 import type { PactProviderScanState, RelevanceVerdict } from './scan-proof.js';
 import type { PactProviderWriteState, PactWriteOutcome } from './write-proof.js';
 
-export type PactValidateOutcome = 'ready' | 'partial' | 'blocked' | 'irrelevant' | 'inconsistent';
+export type PactTechnicalValidationOutcome = 'validated' | 'partial' | 'blocked' | 'irrelevant' | 'inconsistent';
+export type PactIterationOutcome = 'validated-enough-for-now' | 'validated-but-more-coverage-remains' | 'partial' | 'blocked' | 'irrelevant' | 'inconsistent';
+export type PactStopPointDecision = 'stop-for-now' | 'continue-with-another-coverage-slice' | 'repair-before-continuing' | 'not-applicable';
 export type ValidateInputVerdict<T extends string> = T | 'missing';
 export type StateConsistencyVerdict = 'consistent' | 'blocked' | 'inconsistent';
 export type CompileCheckVerdict = 'passed' | 'failed' | 'blocked' | 'not-applicable';
 export type RunnableVerificationVerdict = 'proven' | 'ready' | 'blocked' | 'unproven' | 'not-applicable';
 
 export interface PactProviderValidateState {
-  schemaVersion: 1;
+  schemaVersion: 2;
   generatedAt: string;
   projectRoot: string;
   scanStatePath: string | null;
@@ -23,7 +25,32 @@ export interface PactProviderValidateState {
     plan: ValidateInputVerdict<PactPlanVerdict>;
     write: ValidateInputVerdict<PactWriteOutcome>;
   };
-  validationOutcome: PactValidateOutcome;
+  validatedCoverageSlice: {
+    category: string | null;
+    summary: string | null;
+    verificationTarget: string | null;
+    endpoints: string[];
+    interactions: string[];
+    providerStates: string[];
+    plannedTaskIds: string[];
+    plannedTaskTitles: string[];
+    validationFocus: string[];
+  };
+  technicalValidationOutcome: PactTechnicalValidationOutcome;
+  technicalValidationReasons: string[];
+  iterationOutcome: PactIterationOutcome;
+  iterationReasons: string[];
+  stopPointDecision: PactStopPointDecision;
+  recommendedNextStep: string;
+  expectedFollowUpCommand: string | null;
+  remainingCoverageGaps: {
+    endpointsWithGaps: string[];
+    unverifiedEndpoints: string[];
+    uncoveredEndpoints: string[];
+    interactionStateGaps: string[];
+    unverifiedInteractions: string[];
+    missingProviderStates: string[];
+  };
   stateConsistency: {
     verdict: StateConsistencyVerdict;
     checks: string[];
@@ -51,7 +78,7 @@ export interface PactProviderValidateState {
     command: string | null;
     evidence: string[];
   };
-  remainingBlockers: string[];
+  unresolvedBlockers: string[];
   manualFollowUps: string[];
   evidence: string[];
   notes: string[];
@@ -604,49 +631,187 @@ function evaluateRunnableVerification(
   };
 }
 
-function determineValidationOutcome(
+function deriveValidatedCoverageSlice(
+  writeState: PactProviderWriteState | null,
+): PactProviderValidateState['validatedCoverageSlice'] {
+  if (!writeState) {
+    return {
+      category: null,
+      summary: null,
+      verificationTarget: null,
+      endpoints: [],
+      interactions: [],
+      providerStates: [],
+      plannedTaskIds: [],
+      plannedTaskTitles: [],
+      validationFocus: [],
+    };
+  }
+
+  return {
+    category: writeState.targetCoverageSlice.category,
+    summary: writeState.targetCoverageSlice.summary,
+    verificationTarget: writeState.targetCoverageSlice.verificationTarget,
+    endpoints: writeState.targetCoverageSlice.endpoints,
+    interactions: writeState.targetCoverageSlice.interactions,
+    providerStates: writeState.targetCoverageSlice.providerStates,
+    plannedTaskIds: writeState.targetCoverageSlice.plannedTaskIds,
+    plannedTaskTitles: writeState.targetCoverageSlice.plannedTaskTitles,
+    validationFocus: writeState.validationFocus,
+  };
+}
+
+function emptyRemainingCoverageGaps(): PactProviderValidateState['remainingCoverageGaps'] {
+  return {
+    endpointsWithGaps: [],
+    unverifiedEndpoints: [],
+    uncoveredEndpoints: [],
+    interactionStateGaps: [],
+    unverifiedInteractions: [],
+    missingProviderStates: [],
+  };
+}
+
+function deriveRemainingCoverageGaps(
+  writeState: PactProviderWriteState | null,
+): PactProviderValidateState['remainingCoverageGaps'] {
+  return writeState?.remainingCoverageGaps ?? emptyRemainingCoverageGaps();
+}
+
+function hasAnyRemainingCoverageGaps(
+  remainingCoverageGaps: PactProviderValidateState['remainingCoverageGaps'],
+): boolean {
+  return Object.values(remainingCoverageGaps).some((entries) => entries.length > 0);
+}
+
+function hasImmediateCoveragePressure(
+  remainingCoverageGaps: PactProviderValidateState['remainingCoverageGaps'],
+): boolean {
+  return remainingCoverageGaps.endpointsWithGaps.length > 0
+    || remainingCoverageGaps.unverifiedEndpoints.length > 0
+    || remainingCoverageGaps.interactionStateGaps.length > 0
+    || remainingCoverageGaps.unverifiedInteractions.length > 0
+    || remainingCoverageGaps.missingProviderStates.length > 0;
+}
+
+function describeCoverageGaps(
+  remainingCoverageGaps: PactProviderValidateState['remainingCoverageGaps'],
+): string {
+  const descriptions = [
+    remainingCoverageGaps.missingProviderStates.length > 0
+      ? `missing provider states: ${remainingCoverageGaps.missingProviderStates.join(', ')}`
+      : '',
+    remainingCoverageGaps.endpointsWithGaps.length > 0
+      ? `endpoints with gaps: ${remainingCoverageGaps.endpointsWithGaps.join(', ')}`
+      : '',
+    remainingCoverageGaps.unverifiedEndpoints.length > 0
+      ? `unverified endpoints: ${remainingCoverageGaps.unverifiedEndpoints.join(', ')}`
+      : '',
+    remainingCoverageGaps.uncoveredEndpoints.length > 0
+      ? `uncovered endpoints: ${remainingCoverageGaps.uncoveredEndpoints.join(', ')}`
+      : '',
+    remainingCoverageGaps.interactionStateGaps.length > 0
+      ? `interaction state gaps: ${remainingCoverageGaps.interactionStateGaps.join(', ')}`
+      : '',
+    remainingCoverageGaps.unverifiedInteractions.length > 0
+      ? `unverified interactions: ${remainingCoverageGaps.unverifiedInteractions.join(', ')}`
+      : '',
+  ].filter((entry) => entry.length > 0);
+
+  return descriptions.join('; ') || 'no remaining coverage gaps recorded';
+}
+
+function isBootstrapOnlyStopPoint(
+  scanState: PactProviderScanState | null,
+  writeState: PactProviderWriteState | null,
+): boolean {
+  if (!scanState || !writeState) {
+    return false;
+  }
+
+  const summary = scanState.coverageModel.coverageSummary;
+  return summary.setupOnlyTargets.length > 0
+    && summary.coveredEndpoints.length === 0
+    && summary.coveredInteractions.length === 0
+    && (writeState.targetCoverageSlice.category === 'partial-preparation'
+      || writeState.targetCoverageSlice.category === 'prepare-uncovered-endpoint-coverage'
+      || writeState.writeOutcome === 'partial');
+}
+
+function determineTechnicalValidationOutcome(
   inputVerdicts: PactProviderValidateState['inputVerdicts'],
   stateConsistency: PactProviderValidateState['stateConsistency'],
   repoRealityChecks: PactProviderValidateState['repoRealityChecks'],
   compileCheck: PactProviderValidateState['compileCheck'],
   runnableVerificationCheck: PactProviderValidateState['runnableVerificationCheck'],
-): PactValidateOutcome {
+  scanState: PactProviderScanState | null,
+  writeState: PactProviderWriteState | null,
+): { outcome: PactTechnicalValidationOutcome; reasons: string[] } {
+  const sliceLabel = writeState?.targetCoverageSlice.summary ?? 'the current coverage slice';
+
   if (stateConsistency.verdict === 'blocked') {
-    return 'blocked';
+    return {
+      outcome: 'blocked',
+      reasons: ['Technical validation is blocked because the persisted scan/plan/write chain could not be loaded or checked completely.'],
+    };
   }
 
   if (stateConsistency.verdict === 'inconsistent') {
-    return 'inconsistent';
+    return {
+      outcome: 'inconsistent',
+      reasons: ['Technical validation is inconsistent because the persisted verdict chain conflicts with itself.'],
+    };
   }
 
   if (repoRealityChecks.expectedArtifactsMissing.length > 0 || repoRealityChecks.scaffoldMarkersMissing.length > 0) {
-    return 'inconsistent';
+    return {
+      outcome: 'inconsistent',
+      reasons: [`Technical validation is inconsistent because repo reality drifted from the recorded write result for ${sliceLabel}.`],
+    };
   }
 
   if (inputVerdicts.plan === 'irrelevant' && inputVerdicts.write === 'no-op') {
-    return 'irrelevant';
+    return {
+      outcome: 'irrelevant',
+      reasons: ['Technical validation is irrelevant because persisted state confirms an honest no-op for Pact provider verification in this repo.'],
+    };
   }
 
-  if (inputVerdicts.plan === 'blocked' || inputVerdicts.write === 'blocked') {
-    return 'blocked';
+  if (inputVerdicts.plan === 'blocked' || inputVerdicts.write === 'blocked' || compileCheck.verdict === 'blocked' || runnableVerificationCheck.verdict === 'blocked') {
+    return {
+      outcome: 'blocked',
+      reasons: [`Technical validation is blocked because the recorded slice cannot be verified honestly yet: ${sliceLabel}.`],
+    };
   }
 
   if (compileCheck.verdict === 'failed') {
-    return 'inconsistent';
+    return {
+      outcome: 'inconsistent',
+      reasons: [`Technical validation is inconsistent because the recorded scaffold for ${sliceLabel} no longer matches repo reality.`],
+    };
   }
 
-  if (compileCheck.verdict === 'blocked') {
-    return 'blocked';
+  if (isBootstrapOnlyStopPoint(scanState, writeState)) {
+    return {
+      outcome: 'partial',
+      reasons: ['Technical validation stayed partial because the repo still only has bootstrap-oriented Pact scaffolding, not a grounded provider coverage slice.'],
+    };
   }
 
   if (runnableVerificationCheck.verdict === 'ready' || runnableVerificationCheck.verdict === 'proven') {
-    return 'ready';
+    return {
+      outcome: 'validated',
+      reasons: [`Technical validation passed for the current coverage slice: ${sliceLabel}.`],
+    };
   }
 
-  return 'partial';
+  return {
+    outcome: 'partial',
+    reasons: [`Technical validation stayed partial for ${sliceLabel} because runnable provider verification is still unproven.`],
+  };
 }
 
-function buildRemainingBlockers(
+function buildUnresolvedBlockers(
   stateConsistency: PactProviderValidateState['stateConsistency'],
   repoRealityChecks: PactProviderValidateState['repoRealityChecks'],
   runnableVerificationCheck: PactProviderValidateState['runnableVerificationCheck'],
@@ -661,6 +826,137 @@ function buildRemainingBlockers(
       /blocked|unproven|missing|unresolved|clarification/i.test(entry),
     ),
   ]);
+}
+
+function determineIterationOutcome(
+  technicalValidationOutcome: PactTechnicalValidationOutcome,
+  technicalValidationReasons: string[],
+  remainingCoverageGaps: PactProviderValidateState['remainingCoverageGaps'],
+  unresolvedBlockers: string[],
+): { outcome: PactIterationOutcome; reasons: string[] } {
+  if (technicalValidationOutcome === 'inconsistent') {
+    return {
+      outcome: 'inconsistent',
+      reasons: ['Iteration outcome is inconsistent because repo drift or verdict-chain drift dominates any slice-level success claim.'],
+    };
+  }
+
+  if (technicalValidationOutcome === 'blocked') {
+    return {
+      outcome: 'blocked',
+      reasons: ['Iteration outcome is blocked because the current slice cannot be validated honestly from persisted state and repo reality.'],
+    };
+  }
+
+  if (technicalValidationOutcome === 'irrelevant') {
+    return {
+      outcome: 'irrelevant',
+      reasons: ['Iteration outcome is irrelevant because Pact provider verification is outside the current repo boundary.'],
+    };
+  }
+
+  if (technicalValidationOutcome === 'partial') {
+    return {
+      outcome: 'partial',
+      reasons: uniqueSorted([
+        'Iteration outcome is partial because the current slice is not yet an acceptable engineering stop point.',
+        ...technicalValidationReasons,
+        ...unresolvedBlockers,
+      ]),
+    };
+  }
+
+  if (!hasAnyRemainingCoverageGaps(remainingCoverageGaps)) {
+    return {
+      outcome: 'validated-enough-for-now',
+      reasons: ['The current coverage slice validated successfully and no remaining coverage gaps were recorded.'],
+    };
+  }
+
+  if (hasImmediateCoveragePressure(remainingCoverageGaps)) {
+    return {
+      outcome: 'validated-but-more-coverage-remains',
+      reasons: [`The current slice validated successfully, but another coverage cycle is recommended because ${describeCoverageGaps(remainingCoverageGaps)}.`],
+    };
+  }
+
+  return {
+    outcome: 'validated-enough-for-now',
+    reasons: [`The current slice validated successfully. Remaining later-slice coverage is still explicit, but stopping now is acceptable: ${describeCoverageGaps(remainingCoverageGaps)}.`],
+  };
+}
+
+function determineStopPointDecision(
+  iterationOutcome: PactIterationOutcome,
+  unresolvedBlockers: string[],
+  manualFollowUps: string[],
+): PactStopPointDecision {
+  if (iterationOutcome === 'irrelevant') {
+    return 'not-applicable';
+  }
+
+  if (iterationOutcome === 'inconsistent' || iterationOutcome === 'blocked') {
+    return 'repair-before-continuing';
+  }
+
+  if (iterationOutcome === 'partial') {
+    return unresolvedBlockers.length > 0 || manualFollowUps.length > 0
+      ? 'repair-before-continuing'
+      : 'continue-with-another-coverage-slice';
+  }
+
+  if (iterationOutcome === 'validated-but-more-coverage-remains') {
+    return 'continue-with-another-coverage-slice';
+  }
+
+  return 'stop-for-now';
+}
+
+function determineRecommendedNextStep(
+  iterationOutcome: PactIterationOutcome,
+  stopPointDecision: PactStopPointDecision,
+  remainingCoverageGaps: PactProviderValidateState['remainingCoverageGaps'],
+  unresolvedBlockers: string[],
+): string {
+  if (iterationOutcome === 'irrelevant') {
+    return 'No Pact provider verification follow-up is required within the current MVP boundary.';
+  }
+
+  if (iterationOutcome === 'inconsistent') {
+    return `Repair the repo or persisted-state drift first, then re-ground the workflow from disk state. ${unresolvedBlockers[0] ?? ''}`.trim();
+  }
+
+  if (iterationOutcome === 'blocked') {
+    return `Resolve the blocking input or provider/source ambiguity before starting another coverage cycle. ${unresolvedBlockers[0] ?? ''}`.trim();
+  }
+
+  if (iterationOutcome === 'partial') {
+    return `Current slice is not enough yet. Resolve the open blocker and continue once the repo is grounded: ${unresolvedBlockers[0] ?? describeCoverageGaps(remainingCoverageGaps)}.`;
+  }
+
+  if (iterationOutcome === 'validated-but-more-coverage-remains') {
+    return `Current slice validated, but another coverage-aware plan/write cycle is recommended for ${describeCoverageGaps(remainingCoverageGaps)}.`;
+  }
+
+  if (stopPointDecision === 'stop-for-now' && hasAnyRemainingCoverageGaps(remainingCoverageGaps)) {
+    return `Current slice validated and you can stop now. Later, plan another slice for ${describeCoverageGaps(remainingCoverageGaps)}.`;
+  }
+
+  return 'Current slice validated cleanly. No immediate follow-up is required.';
+}
+
+function determineExpectedFollowUpCommand(
+  iterationOutcome: PactIterationOutcome,
+): string | null {
+  if (iterationOutcome === 'inconsistent' || iterationOutcome === 'blocked') {
+    return '/pact-scan';
+  }
+
+  if (iterationOutcome === 'partial' || iterationOutcome === 'validated-but-more-coverage-remains') {
+    return '/pact-plan';
+  }
+
+  return null;
 }
 
 function buildEvidence(
@@ -684,29 +980,47 @@ function buildEvidence(
 }
 
 function buildNotes(
-  validationOutcome: PactValidateOutcome,
-  stateConsistency: PactProviderValidateState['stateConsistency'],
+  technicalValidationOutcome: PactTechnicalValidationOutcome,
+  iterationOutcome: PactIterationOutcome,
+  stopPointDecision: PactStopPointDecision,
+  remainingCoverageGaps: PactProviderValidateState['remainingCoverageGaps'],
   compileCheck: PactProviderValidateState['compileCheck'],
   runnableVerificationCheck: PactProviderValidateState['runnableVerificationCheck'],
 ): string[] {
   return uniqueSorted([
-    validationOutcome === 'ready'
-      ? 'Validate outcome is ready: persisted state chain is consistent, repo reality still matches the recorded scaffold, and runnable verification is ready to attempt.'
+    technicalValidationOutcome === 'validated'
+      ? 'Technical validation passed for the current slice.'
       : '',
-    validationOutcome === 'partial'
-      ? 'Validate outcome is partial: repo reality is usable enough to continue, but runnable verification is still unresolved or unproven.'
+    technicalValidationOutcome === 'partial'
+      ? 'Technical validation stayed partial for the current slice.'
       : '',
-    validationOutcome === 'blocked'
-      ? 'Validate outcome is blocked: required inputs or prior verdicts do not support an honest readiness claim.'
+    technicalValidationOutcome === 'blocked'
+      ? 'Technical validation is blocked by persisted-state or repo-reality constraints.'
       : '',
-    validationOutcome === 'irrelevant'
-      ? 'Validate outcome is irrelevant: persisted state confirms an honest no-op for Pact provider verification in this repo.'
+    technicalValidationOutcome === 'irrelevant'
+      ? 'Technical validation is not applicable because Pact provider verification is irrelevant here.'
       : '',
-    validationOutcome === 'inconsistent'
-      ? 'Validate outcome is inconsistent: current repo reality drifted from, or conflicted with, the recorded write/plan/scan chain.'
+    technicalValidationOutcome === 'inconsistent'
+      ? 'Technical validation is inconsistent because persisted state or repo reality drifted.'
       : '',
-    stateConsistency.verdict === 'consistent' ? 'Persisted scan/plan/write chain remained internally consistent.' : '',
-    compileCheck.proofLevel === 'structural' ? 'Compile proof is structural only; validate did not execute a Maven or Gradle command.' : '',
+    iterationOutcome === 'validated-but-more-coverage-remains'
+      ? `Remaining coverage is still explicit after this successful slice: ${describeCoverageGaps(remainingCoverageGaps)}.`
+      : '',
+    iterationOutcome === 'validated-enough-for-now' && hasAnyRemainingCoverageGaps(remainingCoverageGaps)
+      ? `Later coverage remains explicit, but it is outside the current stop point: ${describeCoverageGaps(remainingCoverageGaps)}.`
+      : '',
+    stopPointDecision === 'stop-for-now'
+      ? 'The engineer can stop after this validate pass.'
+      : '',
+    stopPointDecision === 'continue-with-another-coverage-slice'
+      ? 'Another coverage-aware plan/write cycle is recommended.'
+      : '',
+    stopPointDecision === 'repair-before-continuing'
+      ? 'Repair or grounding work is required before the next coverage cycle.'
+      : '',
+    compileCheck.proofLevel === 'structural'
+      ? 'Compile proof is structural only; validate did not execute a Maven or Gradle command.'
+      : '',
     runnableVerificationCheck.verdict === 'ready'
       ? 'Runnable verification is ready-to-run, not execution-proven.'
       : '',
@@ -718,30 +1032,64 @@ export function deriveValidateFromPersistedState(projectRoot: string): PactProvi
   const planLoad = loadOptionalState<PactProviderPlanState>(projectRoot, PERSISTED_PLAN_STATE_RELATIVE_PATH, 'plan-state');
   const writeLoad = loadOptionalState<PactProviderWriteState>(projectRoot, PERSISTED_WRITE_STATE_RELATIVE_PATH, 'write-state');
   const inputVerdicts = determineInputVerdicts(scanLoad.state, planLoad.state, writeLoad.state);
+  const validatedCoverageSlice = deriveValidatedCoverageSlice(writeLoad.state);
+  const remainingCoverageGaps = deriveRemainingCoverageGaps(writeLoad.state);
   const stateConsistency = evaluateStateConsistency(scanLoad, planLoad, writeLoad);
   const repoRealityChecks = evaluateRepoReality(projectRoot, scanLoad.state, planLoad.state, writeLoad.state, stateConsistency);
   const compileCheck = evaluateCompileCheck(scanLoad.state, planLoad.state, writeLoad.state, stateConsistency, repoRealityChecks);
   const runnableVerificationCheck = evaluateRunnableVerification(scanLoad.state, planLoad.state, writeLoad.state, stateConsistency, repoRealityChecks);
-  const validationOutcome = determineValidationOutcome(inputVerdicts, stateConsistency, repoRealityChecks, compileCheck, runnableVerificationCheck);
-  const remainingBlockers = buildRemainingBlockers(stateConsistency, repoRealityChecks, runnableVerificationCheck, writeLoad.state);
+  const technicalValidation = determineTechnicalValidationOutcome(
+    inputVerdicts,
+    stateConsistency,
+    repoRealityChecks,
+    compileCheck,
+    runnableVerificationCheck,
+    scanLoad.state,
+    writeLoad.state,
+  );
+  const unresolvedBlockers = buildUnresolvedBlockers(stateConsistency, repoRealityChecks, runnableVerificationCheck, writeLoad.state);
   const manualFollowUps = uniqueSorted(writeLoad.state?.manualFollowUps ?? []);
+  const iteration = determineIterationOutcome(
+    technicalValidation.outcome,
+    technicalValidation.reasons,
+    remainingCoverageGaps,
+    unresolvedBlockers,
+  );
+  const stopPointDecision = determineStopPointDecision(iteration.outcome, unresolvedBlockers, manualFollowUps);
+  const recommendedNextStep = determineRecommendedNextStep(iteration.outcome, stopPointDecision, remainingCoverageGaps, unresolvedBlockers);
+  const expectedFollowUpCommand = determineExpectedFollowUpCommand(iteration.outcome);
   const evidence = buildEvidence(scanLoad.state, planLoad.state, writeLoad.state, repoRealityChecks, compileCheck, runnableVerificationCheck);
-  const notes = buildNotes(validationOutcome, stateConsistency, compileCheck, runnableVerificationCheck);
+  const notes = buildNotes(
+    technicalValidation.outcome,
+    iteration.outcome,
+    stopPointDecision,
+    remainingCoverageGaps,
+    compileCheck,
+    runnableVerificationCheck,
+  );
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt: new Date().toISOString(),
     projectRoot,
     scanStatePath: scanLoad.state ? scanLoad.relativePath : null,
     planStatePath: planLoad.state ? planLoad.relativePath : null,
     writeStatePath: writeLoad.state ? writeLoad.relativePath : null,
     inputVerdicts,
-    validationOutcome,
+    validatedCoverageSlice,
+    technicalValidationOutcome: technicalValidation.outcome,
+    technicalValidationReasons: technicalValidation.reasons,
+    iterationOutcome: iteration.outcome,
+    iterationReasons: iteration.reasons,
+    stopPointDecision,
+    recommendedNextStep,
+    expectedFollowUpCommand,
+    remainingCoverageGaps,
     stateConsistency,
     repoRealityChecks,
     compileCheck,
     runnableVerificationCheck,
-    remainingBlockers,
+    unresolvedBlockers,
     manualFollowUps,
     evidence,
     notes,
@@ -749,7 +1097,8 @@ export function deriveValidateFromPersistedState(projectRoot: string): PactProvi
 }
 
 export function renderValidateSummary(state: PactProviderValidateState): string {
-  const why = state.notes[0] ?? state.remainingBlockers[0] ?? '(none)';
+  const technicalWhy = state.technicalValidationReasons[0] ?? state.notes[0] ?? '(none)';
+  const iterationWhy = state.iterationReasons[0] ?? state.notes[0] ?? '(none)';
   return [
     '# Pact provider validate summary',
     '',
@@ -766,9 +1115,34 @@ export function renderValidateSummary(state: PactProviderValidateState): string 
     `- Plan verdict: ${state.inputVerdicts.plan}`,
     `- Write outcome: ${state.inputVerdicts.write}`,
     '',
-    '### Validation outcome',
-    `- Outcome: ${state.validationOutcome}`,
-    `- Why: ${why}`,
+    '### Validated coverage slice',
+    `- Category: ${state.validatedCoverageSlice.category ?? '(none)'}`,
+    `- Summary: ${state.validatedCoverageSlice.summary ?? '(none)'}`,
+    `- Verification target: ${state.validatedCoverageSlice.verificationTarget ?? '(none)'}`,
+    `- Endpoints: ${state.validatedCoverageSlice.endpoints.join(', ') || '(none)'}`,
+    `- Interactions: ${state.validatedCoverageSlice.interactions.join(', ') || '(none)'}`,
+    `- Provider states: ${state.validatedCoverageSlice.providerStates.join(', ') || '(none)'}`,
+    '',
+    '### Technical validation outcome',
+    `- Outcome: ${state.technicalValidationOutcome}`,
+    `- Why: ${technicalWhy}`,
+    '',
+    '### Iteration outcome',
+    `- Outcome: ${state.iterationOutcome}`,
+    `- Why: ${iterationWhy}`,
+    '',
+    '### Stop-point decision',
+    `- Decision: ${state.stopPointDecision}`,
+    `- Recommended next step: ${state.recommendedNextStep}`,
+    `- Expected follow-up command: ${state.expectedFollowUpCommand ?? '(none)'}`,
+    '',
+    '### Remaining coverage gaps',
+    `- Endpoints with gaps: ${state.remainingCoverageGaps.endpointsWithGaps.join(', ') || '(none)'}`,
+    `- Unverified endpoints: ${state.remainingCoverageGaps.unverifiedEndpoints.join(', ') || '(none)'}`,
+    `- Uncovered endpoints: ${state.remainingCoverageGaps.uncoveredEndpoints.join(', ') || '(none)'}`,
+    `- Interaction state gaps: ${state.remainingCoverageGaps.interactionStateGaps.join(', ') || '(none)'}`,
+    `- Unverified interactions: ${state.remainingCoverageGaps.unverifiedInteractions.join(', ') || '(none)'}`,
+    `- Missing provider states: ${state.remainingCoverageGaps.missingProviderStates.join(', ') || '(none)'}`,
     '',
     '### State consistency',
     `- Verdict: ${state.stateConsistency.verdict}`,
@@ -791,8 +1165,8 @@ export function renderValidateSummary(state: PactProviderValidateState): string 
     `- Command: ${state.runnableVerificationCheck.command ?? '(none)'}`,
     `- Evidence: ${state.runnableVerificationCheck.evidence.join('; ') || '(none)'}`,
     '',
-    '### Remaining blockers',
-    ...(state.remainingBlockers.length > 0 ? state.remainingBlockers.map((entry) => `- ${entry}`) : ['- None.']),
+    '### Unresolved blockers',
+    ...(state.unresolvedBlockers.length > 0 ? state.unresolvedBlockers.map((entry) => `- ${entry}`) : ['- None.']),
     '',
     '### Manual follow-ups',
     ...(state.manualFollowUps.length > 0 ? state.manualFollowUps.map((entry) => `- ${entry}`) : ['- None.']),
