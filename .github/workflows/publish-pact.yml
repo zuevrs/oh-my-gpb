@@ -68,7 +68,7 @@ jobs:
       - name: Publish package
         if: steps.npm_publish_status.outputs.already_published != 'true'
         working-directory: ${{ env.PACKAGE_DIR }}
-        run: npm publish --provenance
+        run: npm publish --provenance --access public
 
       - name: Skip npm publish when version already exists
         if: steps.npm_publish_status.outputs.already_published == 'true'
