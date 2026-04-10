@@ -193,26 +193,48 @@ npm run smoke:pack-install --workspace oh-my-akitagpb
 
 ## Publishing
 
+Akita publishes independently from Pact.
+
 This repository includes:
 
 - CI workflow: `.github/workflows/ci.yml`
-- npm publish workflow: `.github/workflows/publish.yml`
+- Akita publish workflow: `.github/workflows/publish-akita.yml`
 
 The package metadata marks `packages/oh-my-akitagpb` as the package directory
 inside the `zuevrs/oh-my-gpb` repository.
 
-Trusted publishing setup on npmjs.com should point to:
+### Release tag
 
+Use Akita-only tags:
+
+- `akita-vX.Y.Z`
+
+`publish-akita.yml` reads `packages/oh-my-akitagpb/package.json`, derives the
+expected tag from the package version, and fails if the pushed tag does not
+exactly match that version.
+
+### Trusted publishing setup
+
+Trusted publishing on npmjs.com should point to:
+
+- npm package: `oh-my-akitagpb`
 - Repository: `zuevrs/oh-my-gpb`
-- Workflow filename: `publish.yml`
+- Workflow filename: `publish-akita.yml`
+- Expected tag prefix: `akita-v`
 
-Release flow:
+If the existing npm trusted-publisher binding still references `publish.yml`, it
+must be updated manually before the next real Akita publish.
+
+### Release flow
 
 1. Update `packages/oh-my-akitagpb/package.json` version.
 2. Merge to `main`.
-3. Tag the release as `vX.Y.Z`.
+3. Tag the release as `akita-vX.Y.Z`.
 4. Push the tag.
-5. GitHub Actions publishes the package from `packages/oh-my-akitagpb`.
+5. GitHub Actions runs `publish-akita.yml`, executes Akita `release:check`, and
+   publishes only from `packages/oh-my-akitagpb`.
+6. If `oh-my-akitagpb@X.Y.Z` already exists on npm, the workflow skips
+   `npm publish` and only handles the matching GitHub Release state.
 
 ## License
 
