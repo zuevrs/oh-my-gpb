@@ -262,26 +262,47 @@ npm run smoke:pack-install --workspace oh-my-pactgpb
 
 ## Publishing
 
+Pact publishes independently from Akita.
+
 This repository includes:
 
 - CI workflow: `.github/workflows/ci.yml`
-- npm publish workflow: `.github/workflows/publish.yml`
+- Pact publish workflow: `.github/workflows/publish-pact.yml`
 
 The package metadata marks `packages/oh-my-pactgpb` as the package directory
 inside the `zuevrs/oh-my-gpb` repository.
 
-Trusted publishing setup on npmjs.com should point to:
+### Release tag
 
+Use Pact-only tags:
+
+- `pact-vX.Y.Z`
+
+`publish-pact.yml` reads `packages/oh-my-pactgpb/package.json`, derives the
+expected tag from the package version, and fails if the pushed tag does not
+exactly match that version.
+
+### Trusted publishing setup
+
+Trusted publishing on npmjs.com should point to:
+
+- npm package: `oh-my-pactgpb`
 - Repository: `zuevrs/oh-my-gpb`
-- Workflow filename: `publish.yml`
+- Workflow filename: `publish-pact.yml`
+- Expected tag prefix: `pact-v`
 
-Release flow:
+This binding must be created manually before the first real Pact publish.
+
+### Release flow
 
 1. Update `packages/oh-my-pactgpb/package.json` version.
 2. Merge to `main`.
-3. Tag the release as `vX.Y.Z`.
+3. Tag the release as `pact-vX.Y.Z`.
 4. Push the tag.
-5. GitHub Actions publishes the package from `packages/oh-my-pactgpb`.
+5. GitHub Actions runs `publish-pact.yml`, executes Pact `release:check`, and
+   publishes only from `packages/oh-my-pactgpb`.
+6. If `oh-my-pactgpb@X.Y.Z` already exists on npm, the workflow skips
+   `npm publish` and only handles the matching GitHub Release state.
 
 ## License
 
