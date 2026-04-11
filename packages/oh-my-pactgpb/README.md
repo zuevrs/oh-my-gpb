@@ -116,8 +116,7 @@ Then materialize only the provider-verification scaffold the plan safely allows 
 /pact-write
 ```
 
-Then verify whether the recorded scan/plan/write outcome is actually ready, partial,
-blocked, irrelevant, or inconsistent with:
+Then validate the recorded scan/plan/write slice as an engineering stop point: which coverage slice was just validated, what remains open, and whether you can stop for now or should run another coverage cycle.
 
 ```text
 /pact-validate

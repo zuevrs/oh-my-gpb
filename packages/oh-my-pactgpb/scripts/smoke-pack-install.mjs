@@ -252,8 +252,9 @@ function main() {
   assertFileContains(path.join(fixtureRoot, '.oma', 'packs', 'oh-my-pactgpb', 'templates', 'write', 'state-contract.json'), 'inputPlanVerdict');
   assertFileContains(path.join(fixtureRoot, '.oma', 'packs', 'oh-my-pactgpb', 'templates', 'write', 'state-contract.json'), 'writeOutcome');
   assertFileContains(path.join(fixtureRoot, '.oma', 'packs', 'oh-my-pactgpb', 'templates', 'write', 'write-summary.md'), '### Verification next step');
-  assertFileContains(path.join(fixtureRoot, '.oma', 'packs', 'oh-my-pactgpb', 'templates', 'validate', 'state-contract.json'), 'validationOutcome');
-  assertFileContains(path.join(fixtureRoot, '.oma', 'packs', 'oh-my-pactgpb', 'templates', 'validate', 'state-contract.json'), 'runnableVerificationCheck');
+  assertFileContains(path.join(fixtureRoot, '.oma', 'packs', 'oh-my-pactgpb', 'templates', 'validate', 'state-contract.json'), 'technicalValidationOutcome');
+  assertFileContains(path.join(fixtureRoot, '.oma', 'packs', 'oh-my-pactgpb', 'templates', 'validate', 'state-contract.json'), 'iterationOutcome');
+  assertFileContains(path.join(fixtureRoot, '.oma', 'packs', 'oh-my-pactgpb', 'templates', 'validate', 'state-contract.json'), 'stopPointDecision');
   assertFileContains(path.join(fixtureRoot, '.oma', 'packs', 'oh-my-pactgpb', 'templates', 'validate', 'validate-summary.md'), '### Runnable verification');
 
   const summary = {
